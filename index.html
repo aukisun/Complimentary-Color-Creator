@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complimentary Color Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --text-dim: #888;
+    --accent: #CCFF00;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  header {
+    padding: 40px 48px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    color: #000;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+
+  .badge {
+    font-size: 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .hero {
+    padding: 60px 48px 40px;
+    max-width: 800px;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(36px, 5vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span {
+    color: var(--accent);
+  }
+
+  .hero p {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  /* Input area */
+  .input-section {
+    padding: 0 48px 48px;
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .input-group {
+    position: relative;
+  }
+
+  .input-group label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .hex-input-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 16px;
+    height: 56px;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .hex-input-wrap:focus-within {
+    border-color: var(--accent);
+  }
+
+  .color-preview-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .hex-hash {
+    color: var(--text-dim);
+    font-size: 18px;
+    font-weight: 700;
+    user-select: none;
+  }
+
+  #hexInput {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    width: 110px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  #hexInput::placeholder {
+    color: #444;
+  }
+
+  .native-picker {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    position: absolute;
+  }
+
+  .picker-btn {
+    width: 56px;
+    height: 56px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+
+  .picker-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .generate-btn {
+    height: 56px;
+    padding: 0 32px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .generate-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  .generate-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Palette output */
+  .palette-container {
+    padding: 0 48px 80px;
+    display: none;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .palette-container.visible {
+    display: block;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .palette-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .palette-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+  }
+
+  .source-color-tag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 100px;
+  }
+
+  .source-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+  }
+
+  .source-hex {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .palette-row {
+    margin-bottom: 24px;
+  }
+
+  .row-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .row-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .swatch-row {
+    display: flex;
+    border-radius: var(--radius);
+    overflow: hidden;
+    height: 120px;
+  }
+
+  .swatch {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+    transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .swatch:hover {
+    flex: 1.8;
+  }
+
+  .swatch-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: all 0.25s;
+    white-space: nowrap;
+  }
+
+  .swatch:hover .swatch-label {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .swatch-label.dark { color: #000; }
+  .swatch-label.light { color: #fff; }
+
+  .copied-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 10000;
+  }
+
+  .copied-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Export bar */
+  .export-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .export-btn {
+    height: 44px;
+    padding: 0 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+
+  .export-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .export-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Harmony cards */
+  .harmony-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 40px;
+    margin-bottom: 24px;
+  }
+
+  .harmony-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .harmony-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .harmony-card.active {
+    border-color: var(--accent);
+    background: var(--surface-2);
+  }
+
+  .harmony-card-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .harmony-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  .harmony-card-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .harmony-card-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    header, .hero, .input-section, .palette-container { padding-left: 20px; padding-right: 20px; }
+    .swatch-row { height: 90px; }
+    .swatch-label { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">C</div>
+    <span class="logo-text">Complimentary Color Creator</span>
+  </div>
+  <span class="badge">v1.0 — For Designers</span>
+</header>
+
+<section class="hero">
+  <h1>Your palette,<br><span>computed.</span></h1>
+  <p>Enter any HEX color and instantly generate harmonious palettes with complementary, analogous, triadic, split-complementary, and shaded variants — ready to use.</p>
+</section>
+
+<section class="input-section">
+  <div class="input-group">
+    <label>Base color</label>
+    <div class="hex-input-wrap">
+      <div class="color-preview-dot" id="previewDot"></div>
+      <span class="hex-hash">#</span>
+      <input type="text" id="hexInput" placeholder="CCFF00" maxlength="6" spellcheck="false" autocomplete="off">
+      <input type="color" id="nativePicker" class="native-picker" value="#CCFF00">
+    </div>
+  </div>
+
+  <button class="picker-btn" id="pickerBtn" title="Color picker">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><circle cx="18" cy="6" r="3"/>
+    </svg>
+  </button>
+
+  <button class="generate-btn" id="generateBtn">Generate Palette →</button>
+</section>
+
+<section class="palette-container" id="paletteContainer">
+  <div class="palette-header">
+    <h2 class="palette-title">Your Palette</h2>
+    <div class="source-color-tag">
+      <div class="source-dot" id="sourceColorDot"></div>
+      <span class="source-hex" id="sourceColorHex">#CCFF00</span>
+    </div>
+  </div>
+
+  <!-- Harmony selector cards -->
+  <div class="harmony-grid" id="harmonyGrid"></div>
+
+  <div id="paletteRows"></div>
+
+  <div class="export-bar">
+    <button class="export-btn" id="exportCSS" title="Copy CSS Variables">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      Copy CSS
+    </button>
+    <button class="export-btn" id="exportJSON" title="Copy JSON">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/><polyline points="14 2 14 8 20 8"/></svg>
+      Copy JSON
+    </button>
+    <button class="export-btn" id="exportTailwind" title="Copy Tailwind Config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Copy Tailwind
+    </button>
+  </div>
+</section>
+
+<footer style="padding:24px 48px;text-align:right;font-size:11px;color:#555;letter-spacing:0.04em;">Created by Nuforms Lab | 2026</footer>
+
+<div class="copied-toast" id="toast">Copied to clipboard!</div>
+
+<script>
+// ── Color math utilities ──
+function hexToHSL(hex) {
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+}
+
+function luminance(hex) {
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function isValidHex(hex) {
+  return /^[0-9A-Fa-f]{6}$/.test(hex.replace('#', ''));
+}
+
+// ── Harmony generators ──
+function generateShades(h, s, l, count = 7) {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    const newL = l * (1 - t * 0.85);
+    const newS = s * (1 - t * 0.3);
+    colors.push(hslToHex(h, newS, Math.max(newL, 3)));
+  }
+  return colors;
+}
+
+function generateTints(h, s, l, count = 7) {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1);
+    const newL = l + (100 - l) * t * 0.85;
+    const newS = s * (1 - t * 0.7);
+    colors.push(hslToHex(h, Math.max(newS, 2), Math.min(newL, 97)));
+  }
+  return colors;
+}
+
+const HARMONIES = {
+  complementary: {
+    name: 'Complementary',
+    desc: 'Opposite on the color wheel — maximum contrast.',
+    generate(h, s, l) {
+      return [
+        { label: 'Complementary Shades', colors: generateShades((h + 180) % 360, s, l) },
+        { label: 'Base Shades', colors: generateShades(h, s, l) },
+        { label: 'Neutrals', colors: generateShades(h, 8, l) },
+      ];
+    },
+    preview(h, s, l) {
+      return [hslToHex(h, s, l), hslToHex((h + 180) % 360, s, l)];
+    }
+  },
+  analogous: {
+    name: 'Analogous',
+    desc: 'Adjacent hues — cohesive and harmonious.',
+    generate(h, s, l) {
+      return [
+        { label: `Hue ${Math.round((h - 30 + 360) % 360)}°`, colors: generateShades((h - 30 + 360) % 360, s, l) },
+        { label: `Base Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Hue ${Math.round((h + 30) % 360)}°`, colors: generateShades((h + 30) % 360, s, l) },
+      ];
+    },
+    preview(h, s, l) {
+      return [hslToHex((h - 30 + 360) % 360, s, l), hslToHex(h, s, l), hslToHex((h + 30) % 360, s, l)];
+    }
+  },
+  triadic: {
+    name: 'Triadic',
+    desc: 'Three equidistant hues — vibrant balance.',
+    generate(h, s, l) {
+      return [
+        { label: `Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Hue ${Math.round((h + 120) % 360)}°`, colors: generateShades((h + 120) % 360, s, l) },
+        { label: `Hue ${Math.round((h + 240) % 360)}°`, colors: generateShades((h + 240) % 360, s, l) },
+      ];
+    },
+    preview(h, s, l) {
+      return [hslToHex(h, s, l), hslToHex((h + 120) % 360, s, l), hslToHex((h + 240) % 360, s, l)];
+    }
+  },
+  splitComp: {
+    name: 'Split-Compl.',
+    desc: 'Complement split into two adjacent hues.',
+    generate(h, s, l) {
+      return [
+        { label: `Hue ${Math.round((h + 150) % 360)}°`, colors: generateShades((h + 150) % 360, s, l) },
+        { label: `Base Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Hue ${Math.round((h + 210) % 360)}°`, colors: generateShades((h + 210) % 360, s, l) },
+      ];
+    },
+    preview(h, s, l) {
+      return [hslToHex((h + 150) % 360, s, l), hslToHex(h, s, l), hslToHex((h + 210) % 360, s, l)];
+    }
+  },
+  tetradic: {
+    name: 'Tetradic',
+    desc: 'Four colors — two complementary pairs.',
+    generate(h, s, l) {
+      return [
+        { label: `Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Hue ${Math.round((h + 90) % 360)}°`, colors: generateShades((h + 90) % 360, s, l) },
+        { label: `Hue ${Math.round((h + 180) % 360)}°`, colors: generateShades((h + 180) % 360, s, l) },
+        { label: `Hue ${Math.round((h + 270) % 360)}°`, colors: generateShades((h + 270) % 360, s, l) },
+      ];
+    },
+    preview(h, s, l) {
+      return [hslToHex(h, s, l), hslToHex((h + 90) % 360, s, l), hslToHex((h + 180) % 360, s, l), hslToHex((h + 270) % 360, s, l)];
+    }
+  },
+  monochromatic: {
+    name: 'Monochromatic',
+    desc: 'Single hue — tints and shades only.',
+    generate(h, s, l) {
+      return [
+        { label: 'Tints', colors: generateTints(h, s, l) },
+        { label: 'Shades', colors: generateShades(h, s, l) },
+        { label: 'Low Saturation', colors: generateShades(h, s * 0.35, l) },
+      ];
+    },
+    preview(h, s, l) {
+      return [hslToHex(h, s, l + 20), hslToHex(h, s, l), hslToHex(h, s, l - 20)];
+    }
+  }
+};
+
+// ── State ──
+let currentBaseHex = '';
+let currentHarmony = 'complementary';
+let allPaletteColors = [];
+
+// ── DOM ──
+const hexInput = document.getElementById('hexInput');
+const previewDot = document.getElementById('previewDot');
+const nativePicker = document.getElementById('nativePicker');
+const pickerBtn = document.getElementById('pickerBtn');
+const generateBtn = document.getElementById('generateBtn');
+const paletteContainer = document.getElementById('paletteContainer');
+const paletteRows = document.getElementById('paletteRows');
+const harmonyGrid = document.getElementById('harmonyGrid');
+const sourceColorDot = document.getElementById('sourceColorDot');
+const sourceColorHex = document.getElementById('sourceColorHex');
+const toast = document.getElementById('toast');
+
+// ── Events ──
+hexInput.addEventListener('input', () => {
+  const val = hexInput.value.replace(/[^0-9A-Fa-f]/g, '').substring(0, 6);
+  hexInput.value = val;
+  if (val.length === 6 && isValidHex(val)) {
+    previewDot.style.background = '#' + val;
+    previewDot.style.borderColor = '#' + val;
+    nativePicker.value = '#' + val;
+  }
+});
+
+hexInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') generateBtn.click();
+});
+
+pickerBtn.addEventListener('click', () => nativePicker.click());
+
+nativePicker.addEventListener('input', () => {
+  const val = nativePicker.value.replace('#', '').toUpperCase();
+  hexInput.value = val;
+  previewDot.style.background = '#' + val;
+  previewDot.style.borderColor = '#' + val;
+});
+
+generateBtn.addEventListener('click', () => {
+  let hex = hexInput.value.trim().replace('#', '');
+  if (!hex) hex = 'CCFF00';
+  if (!isValidHex(hex)) { hexInput.style.outline = '2px solid red'; setTimeout(() => hexInput.style.outline = '', 1000); return; }
+  currentBaseHex = '#' + hex.toUpperCase();
+  hexInput.value = hex.toUpperCase();
+  previewDot.style.background = currentBaseHex;
+  previewDot.style.borderColor = currentBaseHex;
+  sourceColorDot.style.background = currentBaseHex;
+  sourceColorHex.textContent = currentBaseHex;
+  document.documentElement.style.setProperty('--accent', currentBaseHex);
+  buildHarmonyCards();
+  renderPalette();
+  paletteContainer.classList.add('visible');
+  paletteContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+function buildHarmonyCards() {
+  harmonyGrid.innerHTML = '';
+  const { h, s, l } = hexToHSL(currentBaseHex);
+  Object.entries(HARMONIES).forEach(([key, harm]) => {
+    const card = document.createElement('div');
+    card.className = 'harmony-card' + (key === currentHarmony ? ' active' : '');
+    const dots = harm.preview(h, s, l);
+    card.innerHTML = `
+      <div class="harmony-card-dots">${dots.map(c => `<div class="harmony-dot" style="background:${c};border-color:${c}40"></div>`).join('')}</div>
+      <div class="harmony-card-name">${harm.name}</div>
+      <div class="harmony-card-desc">${harm.desc}</div>
+    `;
+    card.addEventListener('click', () => {
+      currentHarmony = key;
+      document.querySelectorAll('.harmony-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      renderPalette();
+    });
+    harmonyGrid.appendChild(card);
+  });
+}
+
+function renderPalette() {
+  const { h, s, l } = hexToHSL(currentBaseHex);
+  const harmony = HARMONIES[currentHarmony];
+  const rows = harmony.generate(h, s, l);
+  allPaletteColors = [];
+  paletteRows.innerHTML = '';
+
+  rows.forEach((row, ri) => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'palette-row';
+    rowDiv.style.animationDelay = `${ri * 0.1}s`;
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'row-label';
+    labelDiv.textContent = row.label;
+    rowDiv.appendChild(labelDiv);
+
+    const swatchRow = document.createElement('div');
+    swatchRow.className = 'swatch-row';
+
+    row.colors.forEach((color) => {
+      allPaletteColors.push(color);
+      const sw = document.createElement('div');
+      sw.className = 'swatch';
+      sw.style.background = color;
+      const isDark = luminance(color) < 0.5;
+      sw.innerHTML = `<span class="swatch-label ${isDark ? 'light' : 'dark'}">${color}</span>`;
+      sw.addEventListener('click', () => copyToClipboard(color));
+      swatchRow.appendChild(sw);
+    });
+
+    rowDiv.appendChild(swatchRow);
+    paletteRows.appendChild(rowDiv);
+  });
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => showToast(`Copied ${text}`));
+}
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+// Export handlers
+document.getElementById('exportCSS').addEventListener('click', () => {
+  const vars = allPaletteColors.map((c, i) => `  --color-${i + 1}: ${c};`).join('\n');
+  copyToClipboard(`:root {\n${vars}\n}`);
+});
+
+document.getElementById('exportJSON').addEventListener('click', () => {
+  copyToClipboard(JSON.stringify({ base: currentBaseHex, harmony: currentHarmony, colors: allPaletteColors }, null, 2));
+});
+
+document.getElementById('exportTailwind').addEventListener('click', () => {
+  const obj = {};
+  allPaletteColors.forEach((c, i) => { obj[(i + 1) * 100] = c; });
+  copyToClipboard(`colors: {\n  palette: ${JSON.stringify(obj, null, 4)}\n}`);
+});
+
+// Init with accent preview
+previewDot.style.background = '#CCFF00';
+previewDot.style.borderColor = '#CCFF00';
+hexInput.value = 'CCFF00';
+</script>
+</body>
+</html>
