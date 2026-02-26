@@ -706,6 +706,18 @@ const sourceColorHex = document.getElementById('sourceColorHex');
 const toast = document.getElementById('toast');
 
 // ── Events ──
+hexInput.addEventListener('paste', (e) => {
+  e.preventDefault();
+  const pasted = (e.clipboardData || window.clipboardData).getData('text');
+  const clean = pasted.replace(/[^0-9A-Fa-f]/g, '').substring(0, 6).toUpperCase();
+  hexInput.value = clean;
+  if (clean.length === 6 && isValidHex(clean)) {
+    previewDot.style.background = '#' + clean;
+    previewDot.style.borderColor = '#' + clean;
+    nativePicker.value = '#' + clean;
+  }
+});
+
 hexInput.addEventListener('input', () => {
   const val = hexInput.value.replace(/[^0-9A-Fa-f]/g, '').substring(0, 6);
   hexInput.value = val;
