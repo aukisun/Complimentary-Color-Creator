@@ -1,21 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Complimentary Color Creator</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
+  /* ── Theme tokens ── */
+  [data-theme="dark"] {
     --bg: #0a0a0a;
-    --surface: #141414;
+    --bg-elevated: #111111;
+    --surface: #161616;
     --surface-2: #1e1e1e;
     --border: #2a2a2a;
+    --border-hover: #444;
     --text: #f0f0f0;
-    --text-dim: #888;
+    --text-dim: #777;
+    --text-muted: #444;
     --accent: #CCFF00;
-    --radius: 12px;
+    --card-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    --grain-opacity: 0.03;
+    --toggle-bg: #1e1e1e;
+    --toggle-knob: #f0f0f0;
   }
+
+  [data-theme="light"] {
+    --bg: #F5F3EF;
+    --bg-elevated: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F0EDE8;
+    --border: #E0DCD5;
+    --border-hover: #C8C3BA;
+    --text: #1a1a1a;
+    --text-dim: #888;
+    --text-muted: #bbb;
+    --accent: #CCFF00;
+    --card-shadow: 0 2px 20px rgba(0,0,0,0.06);
+    --grain-opacity: 0.015;
+    --toggle-bg: #E0DCD5;
+    --toggle-knob: #1a1a1a;
+  }
+
+  :root { --radius: 14px; }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -25,99 +51,120 @@
     font-family: 'Space Mono', monospace;
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background 0.4s, color 0.4s;
   }
 
-  /* Grain overlay */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 9999;
+    opacity: var(--grain-opacity);
   }
 
+  /* ── Header ── */
   header {
-    padding: 40px 48px 0;
+    padding: 36px 48px 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+  .logo { display: flex; align-items: center; gap: 12px; }
 
   .logo-icon {
-    width: 32px;
-    height: 32px;
+    width: 34px; height: 34px;
     background: var(--accent);
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
+    border-radius: 9px;
+    display: grid; place-items: center;
     font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    color: #000;
-    font-size: 16px;
+    font-weight: 800; color: #000; font-size: 17px;
   }
 
   .logo-text {
     font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
+    font-weight: 700; font-size: 15px;
     letter-spacing: -0.02em;
   }
 
-  .badge {
-    font-size: 10px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    border-radius: 20px;
-    color: var(--text-dim);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+  /* ── Theme toggle ── */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
+  .toggle-icon {
+    width: 20px; height: 20px;
+    color: var(--text-dim);
+    transition: color 0.3s, transform 0.4s;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .toggle-icon.active { color: var(--text); }
+
+  .toggle-track {
+    width: 48px; height: 26px;
+    background: var(--toggle-bg);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    position: relative;
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .toggle-knob {
+    width: 18px; height: 18px;
+    background: var(--toggle-knob);
+    border-radius: 50%;
+    position: absolute;
+    top: 3px; left: 3px;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  [data-theme="light"] .toggle-knob { transform: translateX(22px); }
+
+  .theme-toggle:hover .toggle-track { border-color: var(--accent); }
+
+  /* ── Hero ── */
   .hero {
-    padding: 60px 48px 40px;
+    padding: 56px 48px 36px;
     max-width: 800px;
   }
 
   .hero h1 {
     font-family: 'Syne', sans-serif;
     font-weight: 800;
-    font-size: clamp(36px, 5vw, 56px);
+    font-size: clamp(34px, 5vw, 54px);
     line-height: 1.05;
     letter-spacing: -0.03em;
     margin-bottom: 16px;
   }
 
-  .hero h1 span {
-    color: var(--accent);
-  }
+  .hero h1 span { color: var(--accent); }
 
   .hero p {
     color: var(--text-dim);
     font-size: 13px;
     line-height: 1.7;
-    max-width: 480px;
+    max-width: 500px;
   }
 
-  /* Input area */
+  /* ── Input ── */
   .input-section {
     padding: 0 48px 48px;
     display: flex;
     align-items: flex-end;
-    gap: 16px;
+    gap: 14px;
     flex-wrap: wrap;
   }
 
-  .input-group {
-    position: relative;
-  }
+  .input-group { position: relative; }
 
   .input-group label {
     display: block;
@@ -135,107 +182,75 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0 16px;
-    height: 56px;
+    height: 54px;
     gap: 10px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background 0.3s;
   }
 
-  .hex-input-wrap:focus-within {
-    border-color: var(--accent);
-  }
+  .hex-input-wrap:focus-within { border-color: var(--accent); }
 
   .color-preview-dot {
-    width: 28px;
-    height: 28px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     border: 2px solid var(--border);
     flex-shrink: 0;
-    transition: background 0.3s, border-color 0.3s;
+    transition: all 0.3s;
   }
 
   .hex-hash {
     color: var(--text-dim);
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 18px; font-weight: 700;
     user-select: none;
   }
 
   #hexInput {
-    background: none;
-    border: none;
-    outline: none;
+    background: none; border: none; outline: none;
     color: var(--text);
     font-family: 'Space Mono', monospace;
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 18px; font-weight: 700;
     width: 110px;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
 
-  #hexInput::placeholder {
-    color: #444;
-  }
+  #hexInput::placeholder { color: var(--text-muted); }
 
-  .native-picker {
-    width: 0;
-    height: 0;
-    opacity: 0;
-    position: absolute;
-  }
+  .native-picker { width: 0; height: 0; opacity: 0; position: absolute; }
 
   .picker-btn {
-    width: 56px;
-    height: 56px;
+    width: 54px; height: 54px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     cursor: pointer;
-    display: grid;
-    place-items: center;
+    display: grid; place-items: center;
     color: var(--text-dim);
     transition: all 0.2s;
   }
 
-  .picker-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  .picker-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   .generate-btn {
-    height: 56px;
-    padding: 0 32px;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    border-radius: var(--radius);
+    height: 54px; padding: 0 30px;
+    background: var(--accent); color: #000;
+    border: none; border-radius: var(--radius);
     font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
+    font-weight: 700; font-size: 14px;
     letter-spacing: -0.01em;
-    cursor: pointer;
-    transition: all 0.2s;
+    cursor: pointer; transition: all 0.2s;
   }
 
-  .generate-btn:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-  }
+  .generate-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .generate-btn:active { transform: translateY(0); }
 
-  .generate-btn:active {
-    transform: translateY(0);
-  }
-
-  /* Palette output */
+  /* ── Palette ── */
   .palette-container {
-    padding: 0 48px 80px;
+    padding: 0 48px 40px;
     display: none;
     animation: fadeUp 0.5s ease;
   }
 
-  .palette-container.visible {
-    display: block;
-  }
+  .palette-container.visible { display: block; }
 
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(20px); }
@@ -246,217 +261,276 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
     flex-wrap: wrap;
     gap: 16px;
   }
 
   .palette-title {
     font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 28px;
+    font-weight: 800; font-size: 26px;
     letter-spacing: -0.02em;
   }
 
   .source-color-tag {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: flex; align-items: center; gap: 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: 100px;
+    padding: 8px 16px; border-radius: 100px;
+    transition: all 0.3s;
   }
 
-  .source-dot {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-  }
+  .source-dot { width: 18px; height: 18px; border-radius: 50%; }
+  .source-hex { font-size: 13px; font-weight: 700; letter-spacing: 0.05em; }
 
-  .source-hex {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-
-  .palette-row {
-    margin-bottom: 24px;
-  }
-
-  .row-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-    margin-bottom: 10px;
+  /* ── Harmony tabs ── */
+  .harmony-tabs {
     display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    transition: all 0.3s;
+  }
+
+  .harmony-tab {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 12px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    border: none; background: none;
+    white-space: nowrap;
+  }
+
+  .harmony-tab:hover { color: var(--text); background: var(--surface-2); }
+
+  .harmony-tab.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+
+  /* ── ColorHunt-style palette cards ── */
+  .palette-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  .palette-card {
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+  }
+
+  .palette-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    border-color: var(--border-hover);
+  }
+
+  .card-colors {
+    display: flex;
+    flex-direction: column;
+    height: 220px;
+  }
+
+  .card-color-strip {
+    flex: 1;
+    position: relative;
+    transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .palette-card:hover .card-color-strip:hover {
+    flex: 2;
+  }
+
+  .strip-hex {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.25s;
+    padding: 5px 12px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
+  }
+
+  .strip-hex.dark {
+    color: #000;
+    background: rgba(0,0,0,0.08);
+  }
+
+  .strip-hex.light {
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+  }
+
+  .card-color-strip:hover .strip-hex {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .card-footer {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+
+
+  /* ── Full shade rows ── */
+  .shades-section { margin-top: 16px; }
+
+  .shades-toggle-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 24px;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
   }
 
-  .row-label::after {
+  .shades-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .shades-rows { display: none; }
+  .shades-rows.visible { display: block; }
+
+  .shade-row { margin-bottom: 16px; }
+
+  .shade-row-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .shade-row-label::after {
     content: '';
-    flex: 1;
-    height: 1px;
+    flex: 1; height: 1px;
     background: var(--border);
   }
 
-  .swatch-row {
+  .shade-swatch-row {
     display: flex;
-    border-radius: var(--radius);
+    border-radius: 12px;
     overflow: hidden;
-    height: 120px;
+    height: 72px;
   }
 
-  .swatch {
+  .shade-swatch {
     flex: 1;
     position: relative;
     cursor: pointer;
     transition: flex 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    align-items: flex-end;
-    padding: 12px;
-    overflow: hidden;
+    align-items: center;
+    justify-content: center;
   }
 
-  .swatch:hover {
-    flex: 1.8;
-  }
+  .shade-swatch:hover { flex: 2; }
 
-  .swatch-label {
-    font-size: 11px;
+  .shade-swatch-label {
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     opacity: 0;
-    transform: translateY(6px);
-    transition: all 0.25s;
-    white-space: nowrap;
+    transition: opacity 0.25s;
   }
 
-  .swatch:hover .swatch-label {
-    opacity: 1;
-    transform: translateY(0);
+  .shade-swatch:hover .shade-swatch-label { opacity: 1; }
+  .shade-swatch-label.dark { color: #000; }
+  .shade-swatch-label.light { color: #fff; }
+
+  /* ── Export bar ── */
+  .export-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 28px;
+    flex-wrap: wrap;
   }
 
-  .swatch-label.dark { color: #000; }
-  .swatch-label.light { color: #fff; }
+  .export-btn {
+    height: 42px; padding: 0 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+  }
 
+  .export-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .export-btn svg { width: 15px; height: 15px; }
+
+  /* ── Toast ── */
   .copied-toast {
     position: fixed;
-    bottom: 32px;
-    left: 50%;
+    bottom: 32px; left: 50%;
     transform: translateX(-50%) translateY(20px);
     background: var(--accent);
     color: #000;
     padding: 12px 24px;
     border-radius: 100px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 13px; font-weight: 700;
     opacity: 0;
     transition: all 0.3s;
     pointer-events: none;
     z-index: 10000;
   }
 
-  .copied-toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .copied-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* Export bar */
-  .export-bar {
-    display: flex;
-    gap: 12px;
-    margin-top: 32px;
-    flex-wrap: wrap;
-  }
-
-  .export-btn {
-    height: 44px;
-    padding: 0 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-  }
-
-  .export-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .export-btn svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  /* Harmony cards */
-  .harmony-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin-top: 40px;
-    margin-bottom: 24px;
-  }
-
-  .harmony-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .harmony-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-  }
-
-  .harmony-card.active {
-    border-color: var(--accent);
-    background: var(--surface-2);
-  }
-
-  .harmony-card-dots {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 14px;
-  }
-
-  .harmony-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.1);
-  }
-
-  .harmony-card-name {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-
-  .harmony-card-desc {
+  footer {
+    padding: 24px 48px;
+    text-align: right;
     font-size: 11px;
     color: var(--text-dim);
-    line-height: 1.5;
+    letter-spacing: 0.04em;
   }
 
   @media (max-width: 640px) {
-    header, .hero, .input-section, .palette-container { padding-left: 20px; padding-right: 20px; }
-    .swatch-row { height: 90px; }
-    .swatch-label { font-size: 9px; }
+    header, .hero, .input-section, .palette-container, footer { padding-left: 20px; padding-right: 20px; }
+    .card-colors { height: 180px; }
+    .palette-cards { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
   }
 </style>
 </head>
@@ -467,12 +541,28 @@
     <div class="logo-icon">C</div>
     <span class="logo-text">Complimentary Color Creator</span>
   </div>
-  <span class="badge">v1.0 — For Designers</span>
+
+  <div class="theme-toggle" id="themeToggle" title="Switch theme">
+    <div class="toggle-icon active" id="iconSun">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+      </svg>
+    </div>
+    <div class="toggle-track">
+      <div class="toggle-knob"></div>
+    </div>
+    <div class="toggle-icon" id="iconMoon">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </div>
+  </div>
 </header>
 
 <section class="hero">
   <h1>Your palette,<br><span>computed.</span></h1>
-  <p>Enter any HEX color and instantly generate harmonious palettes with complementary, analogous, triadic, split-complementary, and shaded variants — ready to use.</p>
+  <p>Enter any HEX color and get cinematic, curated palettes — complementary, analogous, triadic, and more. Click any color to copy.</p>
 </section>
 
 <section class="input-section">
@@ -504,33 +594,39 @@
     </div>
   </div>
 
-  <!-- Harmony selector cards -->
-  <div class="harmony-grid" id="harmonyGrid"></div>
+  <div class="harmony-tabs" id="harmonyTabs"></div>
+  <div class="palette-cards" id="paletteCards"></div>
 
-  <div id="paletteRows"></div>
+  <div class="shades-section">
+    <button class="shades-toggle-btn" id="shadesToggle">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      Show all shades
+    </button>
+    <div class="shades-rows" id="shadesRows"></div>
+  </div>
 
   <div class="export-bar">
-    <button class="export-btn" id="exportCSS" title="Copy CSS Variables">
+    <button class="export-btn" id="exportCSS">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-      Copy CSS
+      CSS
     </button>
-    <button class="export-btn" id="exportJSON" title="Copy JSON">
+    <button class="export-btn" id="exportJSON">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/><polyline points="14 2 14 8 20 8"/></svg>
-      Copy JSON
+      JSON
     </button>
-    <button class="export-btn" id="exportTailwind" title="Copy Tailwind Config">
+    <button class="export-btn" id="exportTailwind">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Copy Tailwind
+      Tailwind
     </button>
   </div>
 </section>
 
-<footer style="padding:24px 48px;text-align:right;font-size:11px;color:#555;letter-spacing:0.04em;">Created by Nuforms Lab | 2026</footer>
+<footer>Created by Nuforms Lab | 2026</footer>
 
 <div class="copied-toast" id="toast">Copied to clipboard!</div>
 
 <script>
-// ── Color math utilities ──
+// ── Color math ──
 function hexToHSL(hex) {
   hex = hex.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -576,25 +672,43 @@ function isValidHex(hex) {
   return /^[0-9A-Fa-f]{6}$/.test(hex.replace('#', ''));
 }
 
-// ── Harmony generators ──
-function generateShades(h, s, l, count = 7) {
-  const colors = [];
-  for (let i = 0; i < count; i++) {
-    const t = i / (count - 1);
-    const newL = l * (1 - t * 0.85);
-    const newS = s * (1 - t * 0.3);
-    colors.push(hslToHex(h, newS, Math.max(newL, 3)));
-  }
-  return colors;
+// ── Cinematic palette generation (ColorHunt-inspired) ──
+// Key insight: great palettes use the input color as HERO, then pair it with
+// colors from genuinely different hue territories, varying both saturation 
+// and lightness dramatically — not just tints/shades of the same hue.
+
+// For a given hue, produce 4 colors that feel like a cohesive "mood":
+// bright version → the hero → a rich dark version → near-black anchor
+function monoGradient4(h, s, l) {
+  return [
+    hslToHex(h, s, l),                                           // hero
+    hslToHex(h, Math.min(s * 1.05, 100), Math.max(l * 0.58, 18)), // rich mid
+    hslToHex(h, Math.min(s * 0.9, 95), Math.max(l * 0.32, 10)),  // deep
+    hslToHex(h, Math.min(s * 0.7, 80), Math.max(l * 0.12, 5)),   // anchor
+  ];
 }
 
-function generateTints(h, s, l, count = 7) {
+// ColorHunt-style: 4 colors that span from the hero hue to a contrasting anchor
+// Key: mid-tones shift hue slightly toward the complement for cinematic richness
+function colorHuntPalette(h, s, l, anchorH) {
+  const midShift = (anchorH - h + 540) % 360 - 180;
+  const mid1H = h + midShift * 0.1;
+  const mid2H = h + midShift * 0.28;
+  return [
+    hslToHex(h, s, l),                                              // hero color
+    hslToHex(mid1H, Math.min(s * 0.92, 88), Math.max(l * 0.58, 25)), // rich mid
+    hslToHex(mid2H, Math.min(s * 0.72, 75), Math.max(l * 0.34, 16)), // deep mid
+    hslToHex(anchorH, Math.min(s * 0.6, 55), Math.max(l * 0.1, 7)),  // contrasting anchor
+  ];
+}
+
+function generateShades(h, s, l, count = 9) {
   const colors = [];
   for (let i = 0; i < count; i++) {
     const t = i / (count - 1);
-    const newL = l + (100 - l) * t * 0.85;
-    const newS = s * (1 - t * 0.7);
-    colors.push(hslToHex(h, Math.max(newS, 2), Math.min(newL, 97)));
+    const newL = 95 - t * 88;
+    const newS = s * (0.3 + 0.7 * (1 - Math.abs(t - 0.5) * 1.2));
+    colors.push(hslToHex(h, Math.max(newS, 4), Math.max(newL, 4)));
   }
   return colors;
 }
@@ -602,87 +716,190 @@ function generateTints(h, s, l, count = 7) {
 const HARMONIES = {
   complementary: {
     name: 'Complementary',
-    desc: 'Opposite on the color wheel — maximum contrast.',
-    generate(h, s, l) {
+    cards(h, s, l) {
+      const compH = (h + 180) % 360;
       return [
-        { label: 'Complementary Shades', colors: generateShades((h + 180) % 360, s, l) },
-        { label: 'Base Shades', colors: generateShades(h, s, l) },
-        { label: 'Neutrals', colors: generateShades(h, 8, l) },
+        // Card 1: Hero → deep → anchor into complement dark (like ColorHunt F63049 example)
+        { label: 'Base', colors: colorHuntPalette(h, s, l, compH) },
+        // Card 2: Complement-led palette
+        { label: 'Complement', colors: colorHuntPalette(compH, s, l, h) },
+        // Card 3: Blend — light base, hero, complement, deep neutral
+        { label: 'Cinematic Blend', colors: [
+          hslToHex(h, s * 0.35, Math.min(l + (100 - l) * 0.55, 88)),
+          hslToHex(h, s, l),
+          hslToHex(compH, s * 0.8, l * 0.7),
+          hslToHex(compH, Math.min(s * 0.6, 60), Math.max(l * 0.11, 6)),
+        ]},
+        // Card 4: Desaturated mood board
+        { label: 'Muted', colors: [
+          hslToHex(h, s * 0.2, 88),
+          hslToHex(h, s * 0.45, 55),
+          hslToHex(compH, s * 0.35, 40),
+          hslToHex(compH, s * 0.25, 14),
+        ]},
       ];
     },
-    preview(h, s, l) {
-      return [hslToHex(h, s, l), hslToHex((h + 180) % 360, s, l)];
+    shades(h, s, l) {
+      return [
+        { label: `Base ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Complement ${Math.round((h + 180) % 360)}°`, colors: generateShades((h + 180) % 360, s, l) },
+        { label: 'Neutral', colors: generateShades(h, 8, 52) },
+      ];
     }
   },
   analogous: {
     name: 'Analogous',
-    desc: 'Adjacent hues — cohesive and harmonious.',
-    generate(h, s, l) {
+    cards(h, s, l) {
+      const hA = (h - 30 + 360) % 360;
+      const hB = (h + 30) % 360;
       return [
-        { label: `Hue ${Math.round((h - 30 + 360) % 360)}°`, colors: generateShades((h - 30 + 360) % 360, s, l) },
-        { label: `Base Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
-        { label: `Hue ${Math.round((h + 30) % 360)}°`, colors: generateShades((h + 30) % 360, s, l) },
+        { label: 'Warm Flow', colors: [
+          hslToHex(hA, s * 0.9, l),
+          hslToHex(h, s, l),
+          hslToHex(hB, Math.min(s * 1.05, 100), Math.max(l * 0.55, 18)),
+          hslToHex(hB, Math.min(s * 0.7, 70), Math.max(l * 0.14, 6)),
+        ]},
+        { label: `Hue ${Math.round(hA)}°`, colors: colorHuntPalette(hA, s, l, (hA + 180) % 360) },
+        { label: `Hue ${Math.round(hB)}°`, colors: colorHuntPalette(hB, s, l, (hB + 180) % 360) },
+        { label: 'Soft Gradient', colors: [
+          hslToHex(hA, s * 0.4, Math.min(l + 28, 90)),
+          hslToHex(h, s * 0.65, l * 0.75),
+          hslToHex(hB, s * 0.55, Math.max(l * 0.4, 15)),
+          hslToHex(h, s * 0.3, Math.max(l * 0.1, 6)),
+        ]},
       ];
     },
-    preview(h, s, l) {
-      return [hslToHex((h - 30 + 360) % 360, s, l), hslToHex(h, s, l), hslToHex((h + 30) % 360, s, l)];
+    shades(h, s, l) {
+      return [
+        { label: `Hue ${Math.round((h - 30 + 360) % 360)}°`, colors: generateShades((h - 30 + 360) % 360, s, l) },
+        { label: `Base ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Hue ${Math.round((h + 30) % 360)}°`, colors: generateShades((h + 30) % 360, s, l) },
+      ];
     }
   },
   triadic: {
     name: 'Triadic',
-    desc: 'Three equidistant hues — vibrant balance.',
-    generate(h, s, l) {
+    cards(h, s, l) {
+      const h2 = (h + 120) % 360;
+      const h3 = (h + 240) % 360;
+      return [
+        { label: 'Vibrant Triad', colors: [
+          hslToHex(h, s, l),
+          hslToHex(h2, s * 0.85, Math.max(l * 0.6, 20)),
+          hslToHex(h3, s * 0.7, Math.max(l * 0.35, 12)),
+          hslToHex(h, Math.min(s * 0.5, 50), Math.max(l * 0.1, 5)),
+        ]},
+        { label: `Hue ${Math.round(h2)}°`, colors: colorHuntPalette(h2, s, l, h) },
+        { label: `Hue ${Math.round(h3)}°`, colors: colorHuntPalette(h3, s, l, h2) },
+        { label: 'Balanced', colors: [
+          hslToHex(h, s * 0.35, 86),
+          hslToHex(h2, s * 0.6, l * 0.7),
+          hslToHex(h3, s * 0.6, Math.max(l * 0.4, 15)),
+          hslToHex(h3, s * 0.4, Math.max(l * 0.12, 6)),
+        ]},
+      ];
+    },
+    shades(h, s, l) {
       return [
         { label: `Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
         { label: `Hue ${Math.round((h + 120) % 360)}°`, colors: generateShades((h + 120) % 360, s, l) },
         { label: `Hue ${Math.round((h + 240) % 360)}°`, colors: generateShades((h + 240) % 360, s, l) },
       ];
-    },
-    preview(h, s, l) {
-      return [hslToHex(h, s, l), hslToHex((h + 120) % 360, s, l), hslToHex((h + 240) % 360, s, l)];
     }
   },
   splitComp: {
-    name: 'Split-Compl.',
-    desc: 'Complement split into two adjacent hues.',
-    generate(h, s, l) {
+    name: 'Split-Complementary',
+    cards(h, s, l) {
+      const hA = (h + 150) % 360;
+      const hB = (h + 210) % 360;
       return [
-        { label: `Hue ${Math.round((h + 150) % 360)}°`, colors: generateShades((h + 150) % 360, s, l) },
-        { label: `Base Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
-        { label: `Hue ${Math.round((h + 210) % 360)}°`, colors: generateShades((h + 210) % 360, s, l) },
+        { label: 'Split Pair', colors: [
+          hslToHex(h, s, l),
+          hslToHex(hA, s * 0.85, Math.max(l * 0.6, 20)),
+          hslToHex(hB, s * 0.75, Math.max(l * 0.35, 12)),
+          hslToHex(hA, Math.min(s * 0.55, 55), Math.max(l * 0.1, 5)),
+        ]},
+        { label: `Hue ${Math.round(hA)}°`, colors: colorHuntPalette(hA, s, l, h) },
+        { label: `Hue ${Math.round(hB)}°`, colors: colorHuntPalette(hB, s, l, h) },
+        { label: 'Muted Blend', colors: [
+          hslToHex(h, s * 0.25, 88),
+          hslToHex(hA, s * 0.45, 58),
+          hslToHex(hB, s * 0.4, 38),
+          hslToHex(h, s * 0.3, 12),
+        ]},
       ];
     },
-    preview(h, s, l) {
-      return [hslToHex((h + 150) % 360, s, l), hslToHex(h, s, l), hslToHex((h + 210) % 360, s, l)];
+    shades(h, s, l) {
+      return [
+        { label: `Base ${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `Split A ${Math.round((h + 150) % 360)}°`, colors: generateShades((h + 150) % 360, s, l) },
+        { label: `Split B ${Math.round((h + 210) % 360)}°`, colors: generateShades((h + 210) % 360, s, l) },
+      ];
     }
   },
   tetradic: {
     name: 'Tetradic',
-    desc: 'Four colors — two complementary pairs.',
-    generate(h, s, l) {
+    cards(h, s, l) {
+      const h2 = (h + 90) % 360;
+      const h3 = (h + 180) % 360;
+      const h4 = (h + 270) % 360;
       return [
-        { label: `Hue ${Math.round(h)}°`, colors: generateShades(h, s, l) },
-        { label: `Hue ${Math.round((h + 90) % 360)}°`, colors: generateShades((h + 90) % 360, s, l) },
-        { label: `Hue ${Math.round((h + 180) % 360)}°`, colors: generateShades((h + 180) % 360, s, l) },
-        { label: `Hue ${Math.round((h + 270) % 360)}°`, colors: generateShades((h + 270) % 360, s, l) },
+        { label: 'Full Quad', colors: [
+          hslToHex(h, s, l),
+          hslToHex(h2, s * 0.85, Math.max(l * 0.65, 22)),
+          hslToHex(h3, s * 0.75, Math.max(l * 0.38, 14)),
+          hslToHex(h4, s * 0.6, Math.max(l * 0.12, 6)),
+        ]},
+        { label: 'Warm Pair', colors: colorHuntPalette(h, s, l, h3) },
+        { label: 'Cool Pair', colors: colorHuntPalette(h3, s, l, h) },
+        { label: 'Muted Quad', colors: [
+          hslToHex(h, s * 0.3, 84),
+          hslToHex(h2, s * 0.4, 60),
+          hslToHex(h3, s * 0.35, 38),
+          hslToHex(h4, s * 0.25, 16),
+        ]},
       ];
     },
-    preview(h, s, l) {
-      return [hslToHex(h, s, l), hslToHex((h + 90) % 360, s, l), hslToHex((h + 180) % 360, s, l), hslToHex((h + 270) % 360, s, l)];
+    shades(h, s, l) {
+      return [
+        { label: `${Math.round(h)}°`, colors: generateShades(h, s, l) },
+        { label: `${Math.round((h + 90) % 360)}°`, colors: generateShades((h + 90) % 360, s, l) },
+        { label: `${Math.round((h + 180) % 360)}°`, colors: generateShades((h + 180) % 360, s, l) },
+        { label: `${Math.round((h + 270) % 360)}°`, colors: generateShades((h + 270) % 360, s, l) },
+      ];
     }
   },
   monochromatic: {
-    name: 'Monochromatic',
-    desc: 'Single hue — tints and shades only.',
-    generate(h, s, l) {
+    name: 'Mono',
+    cards(h, s, l) {
       return [
-        { label: 'Tints', colors: generateTints(h, s, l) },
-        { label: 'Shades', colors: generateShades(h, s, l) },
-        { label: 'Low Saturation', colors: generateShades(h, s * 0.35, l) },
+        { label: 'Full Range', colors: monoGradient4(h, s, l) },
+        { label: 'Desaturated', colors: [
+          hslToHex(h, s * 0.25, 82),
+          hslToHex(h, s * 0.35, 58),
+          hslToHex(h, s * 0.3, 32),
+          hslToHex(h, s * 0.2, 12),
+        ]},
+        { label: 'High Contrast', colors: [
+          hslToHex(h, s * 0.2, 94),
+          hslToHex(h, s, l),
+          hslToHex(h, Math.min(s * 1.1, 100), Math.max(l * 0.3, 10)),
+          hslToHex(h, s * 0.6, Math.max(l * 0.08, 4)),
+        ]},
+        { label: 'Tinted Neutrals', colors: [
+          hslToHex(h, 8, 92),
+          hslToHex(h, 14, 65),
+          hslToHex(h, 10, 38),
+          hslToHex(h, 6, 12),
+        ]},
       ];
     },
-    preview(h, s, l) {
-      return [hslToHex(h, s, l + 20), hslToHex(h, s, l), hslToHex(h, s, l - 20)];
+    shades(h, s, l) {
+      return [
+        { label: 'Saturated', colors: generateShades(h, s, l) },
+        { label: 'Mid Saturation', colors: generateShades(h, s * 0.5, l) },
+        { label: 'Low Saturation', colors: generateShades(h, s * 0.15, 52) },
+      ];
     }
   }
 };
@@ -691,21 +908,46 @@ const HARMONIES = {
 let currentBaseHex = '';
 let currentHarmony = 'complementary';
 let allPaletteColors = [];
+let shadesVisible = false;
 
 // ── DOM ──
-const hexInput = document.getElementById('hexInput');
-const previewDot = document.getElementById('previewDot');
-const nativePicker = document.getElementById('nativePicker');
-const pickerBtn = document.getElementById('pickerBtn');
-const generateBtn = document.getElementById('generateBtn');
-const paletteContainer = document.getElementById('paletteContainer');
-const paletteRows = document.getElementById('paletteRows');
-const harmonyGrid = document.getElementById('harmonyGrid');
-const sourceColorDot = document.getElementById('sourceColorDot');
-const sourceColorHex = document.getElementById('sourceColorHex');
-const toast = document.getElementById('toast');
+const $ = id => document.getElementById(id);
+const hexInput = $('hexInput');
+const previewDot = $('previewDot');
+const nativePicker = $('nativePicker');
+const pickerBtn = $('pickerBtn');
+const generateBtn = $('generateBtn');
+const paletteContainer = $('paletteContainer');
+const paletteCards = $('paletteCards');
+const harmonyTabs = $('harmonyTabs');
+const shadesRows = $('shadesRows');
+const shadesToggle = $('shadesToggle');
+const sourceColorDot = $('sourceColorDot');
+const sourceColorHex = $('sourceColorHex');
+const toast = $('toast');
 
-// ── Events ──
+// ── Theme toggle ──
+const themeToggle = $('themeToggle');
+const iconSun = $('iconSun');
+const iconMoon = $('iconMoon');
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  if (theme === 'dark') {
+    iconSun.classList.add('active');
+    iconMoon.classList.remove('active');
+  } else {
+    iconMoon.classList.add('active');
+    iconSun.classList.remove('active');
+  }
+}
+
+themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// ── Input events ──
 hexInput.addEventListener('paste', (e) => {
   e.preventDefault();
   const pasted = (e.clipboardData || window.clipboardData).getData('text');
@@ -728,10 +970,7 @@ hexInput.addEventListener('input', () => {
   }
 });
 
-hexInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') generateBtn.click();
-});
-
+hexInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') generateBtn.click(); });
 pickerBtn.addEventListener('click', () => nativePicker.click());
 
 nativePicker.addEventListener('input', () => {
@@ -741,6 +980,7 @@ nativePicker.addEventListener('input', () => {
   previewDot.style.borderColor = '#' + val;
 });
 
+// ── Generate ──
 generateBtn.addEventListener('click', () => {
   let hex = hexInput.value.trim().replace('#', '');
   if (!hex) hex = 'CCFF00';
@@ -752,68 +992,98 @@ generateBtn.addEventListener('click', () => {
   sourceColorDot.style.background = currentBaseHex;
   sourceColorHex.textContent = currentBaseHex;
   document.documentElement.style.setProperty('--accent', currentBaseHex);
-  buildHarmonyCards();
-  renderPalette();
+
+  buildTabs();
+  renderAll();
   paletteContainer.classList.add('visible');
   paletteContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
-function buildHarmonyCards() {
-  harmonyGrid.innerHTML = '';
-  const { h, s, l } = hexToHSL(currentBaseHex);
+function buildTabs() {
+  harmonyTabs.innerHTML = '';
   Object.entries(HARMONIES).forEach(([key, harm]) => {
-    const card = document.createElement('div');
-    card.className = 'harmony-card' + (key === currentHarmony ? ' active' : '');
-    const dots = harm.preview(h, s, l);
-    card.innerHTML = `
-      <div class="harmony-card-dots">${dots.map(c => `<div class="harmony-dot" style="background:${c};border-color:${c}40"></div>`).join('')}</div>
-      <div class="harmony-card-name">${harm.name}</div>
-      <div class="harmony-card-desc">${harm.desc}</div>
-    `;
-    card.addEventListener('click', () => {
+    const btn = document.createElement('button');
+    btn.className = 'harmony-tab' + (key === currentHarmony ? ' active' : '');
+    btn.textContent = harm.name;
+    btn.addEventListener('click', () => {
       currentHarmony = key;
-      document.querySelectorAll('.harmony-card').forEach(c => c.classList.remove('active'));
-      card.classList.add('active');
-      renderPalette();
+      document.querySelectorAll('.harmony-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAll();
     });
-    harmonyGrid.appendChild(card);
+    harmonyTabs.appendChild(btn);
   });
 }
 
-function renderPalette() {
+function renderAll() { renderCards(); renderShades(); }
+
+function renderCards() {
   const { h, s, l } = hexToHSL(currentBaseHex);
   const harmony = HARMONIES[currentHarmony];
-  const rows = harmony.generate(h, s, l);
+  const cards = harmony.cards(h, s, l);
   allPaletteColors = [];
-  paletteRows.innerHTML = '';
+  paletteCards.innerHTML = '';
 
-  rows.forEach((row, ri) => {
+  cards.forEach((card) => {
+    card.colors.forEach(c => allPaletteColors.push(c));
+    const el = document.createElement('div');
+    el.className = 'palette-card';
+    const colorsDiv = document.createElement('div');
+    colorsDiv.className = 'card-colors';
+    card.colors.forEach(color => {
+      const strip = document.createElement('div');
+      strip.className = 'card-color-strip';
+      strip.style.background = color;
+      const isDark = luminance(color) < 0.5;
+      strip.innerHTML = `<span class="strip-hex ${isDark ? 'light' : 'dark'}">${color}</span>`;
+      strip.addEventListener('click', (e) => { e.stopPropagation(); copyToClipboard(color); });
+      colorsDiv.appendChild(strip);
+    });
+    const footer = document.createElement('div');
+    footer.className = 'card-footer';
+    footer.innerHTML = `<span class="card-label">${card.label}</span>`;
+    el.appendChild(colorsDiv);
+    el.appendChild(footer);
+    paletteCards.appendChild(el);
+  });
+}
+
+function renderShades() {
+  const { h, s, l } = hexToHSL(currentBaseHex);
+  const harmony = HARMONIES[currentHarmony];
+  const rows = harmony.shades(h, s, l);
+  shadesRows.innerHTML = '';
+  rows.forEach(row => {
+    row.colors.forEach(c => { if (!allPaletteColors.includes(c)) allPaletteColors.push(c); });
     const rowDiv = document.createElement('div');
-    rowDiv.className = 'palette-row';
-    rowDiv.style.animationDelay = `${ri * 0.1}s`;
+    rowDiv.className = 'shade-row';
     const labelDiv = document.createElement('div');
-    labelDiv.className = 'row-label';
+    labelDiv.className = 'shade-row-label';
     labelDiv.textContent = row.label;
     rowDiv.appendChild(labelDiv);
-
     const swatchRow = document.createElement('div');
-    swatchRow.className = 'swatch-row';
-
-    row.colors.forEach((color) => {
-      allPaletteColors.push(color);
+    swatchRow.className = 'shade-swatch-row';
+    row.colors.forEach(color => {
       const sw = document.createElement('div');
-      sw.className = 'swatch';
+      sw.className = 'shade-swatch';
       sw.style.background = color;
       const isDark = luminance(color) < 0.5;
-      sw.innerHTML = `<span class="swatch-label ${isDark ? 'light' : 'dark'}">${color}</span>`;
+      sw.innerHTML = `<span class="shade-swatch-label ${isDark ? 'light' : 'dark'}">${color}</span>`;
       sw.addEventListener('click', () => copyToClipboard(color));
       swatchRow.appendChild(sw);
     });
-
     rowDiv.appendChild(swatchRow);
-    paletteRows.appendChild(rowDiv);
+    shadesRows.appendChild(rowDiv);
   });
 }
+
+shadesToggle.addEventListener('click', () => {
+  shadesVisible = !shadesVisible;
+  shadesRows.classList.toggle('visible', shadesVisible);
+  shadesToggle.innerHTML = shadesVisible
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg> Hide shades'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg> Show all shades';
+});
 
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => showToast(`Copied ${text}`));
@@ -825,26 +1095,26 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
-// Export handlers
-document.getElementById('exportCSS').addEventListener('click', () => {
+$('exportCSS').addEventListener('click', () => {
   const vars = allPaletteColors.map((c, i) => `  --color-${i + 1}: ${c};`).join('\n');
   copyToClipboard(`:root {\n${vars}\n}`);
 });
 
-document.getElementById('exportJSON').addEventListener('click', () => {
+$('exportJSON').addEventListener('click', () => {
   copyToClipboard(JSON.stringify({ base: currentBaseHex, harmony: currentHarmony, colors: allPaletteColors }, null, 2));
 });
 
-document.getElementById('exportTailwind').addEventListener('click', () => {
+$('exportTailwind').addEventListener('click', () => {
   const obj = {};
   allPaletteColors.forEach((c, i) => { obj[(i + 1) * 100] = c; });
   copyToClipboard(`colors: {\n  palette: ${JSON.stringify(obj, null, 4)}\n}`);
 });
 
-// Init with accent preview
+// Init
 previewDot.style.background = '#CCFF00';
 previewDot.style.borderColor = '#CCFF00';
 hexInput.value = 'CCFF00';
+setTheme('dark');
 </script>
 </body>
 </html>
