@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Complimentary Color Creator</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23733124'/%3E%3Cellipse cx='50' cy='52' rx='20' ry='13' fill='none' stroke='%23000' stroke-width='6' opacity='0.4'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* ── Theme tokens ── */
@@ -127,7 +128,7 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   }
 
-  [data-theme="light"] .toggle-knob { transform: translateX(22px); }
+  [data-theme="dark"] .toggle-knob { transform: translateX(22px); }
 
   .theme-toggle:hover .toggle-track { border-color: var(--accent); }
 
@@ -1134,7 +1135,7 @@ const iconMoon = $('iconMoon');
 
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  if (theme === 'dark') {
+  if (theme === 'light') {
     iconSun.classList.add('active');
     iconMoon.classList.remove('active');
   } else {
@@ -1287,7 +1288,32 @@ shadesToggle.addEventListener('click', () => {
 });
 
 function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => showToast(`Copied ${text}`));
+  // Try modern API first, fallback to textarea method
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast(`Copied!`))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  ta.style.top = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('Copied!');
+  } catch (e) {
+    showToast('Copy failed — check permissions');
+  }
+  document.body.removeChild(ta);
 }
 
 function showToast(msg) {
@@ -1315,7 +1341,7 @@ $('exportTailwind').addEventListener('click', () => {
 previewDot.style.background = '#CCFF00';
 previewDot.style.borderColor = '#CCFF00';
 hexInput.value = 'CCFF00';
-setTheme('dark');
+setTheme('light');
 
 // Sync grabber width with input row
 function syncGrabberWidth() {
