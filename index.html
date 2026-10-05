@@ -177,8 +177,7 @@ body.kbd .orb:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .site-foot{display:flex;justify-content:flex-end;align-items:baseline;gap:10px;margin-top:96px;
   font-size:11px;letter-spacing:.06em;color:var(--muted)}
 .site-foot .sep{opacity:.5}
-.lab-link{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:1px;transition:border-color .2s}
-.lab-link[href]:hover{border-bottom-color:var(--ink)}
+.lab-name{color:var(--ink)}
 @media (max-width:640px){.site-foot{justify-content:center;margin-top:64px}}
 
 /* Harmony row */
@@ -308,7 +307,7 @@ body.kbd .pill:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 <footer class="site-foot">
   <span>C³ Engine v2</span>
   <span class="sep" aria-hidden="true">|</span>
-  <a id="labLink" class="lab-link">nuforms lab</a>
+  <span class="lab-name">nuforms lab</span>
 </footer>
 
 <div class="toast" id="toast"></div>
