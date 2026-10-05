@@ -175,6 +175,7 @@ body.kbd .orb:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 
 /* Harmony row */
 .harmonies{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;margin-top:4px}
+.harm-rule{margin:8px 0 0;text-align:center;font-size:10px;letter-spacing:.08em;color:var(--muted);min-height:1.4em}
 .harm{
   font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   background:none;border:0;padding:4px 0;cursor:pointer;color:var(--muted);
@@ -277,6 +278,7 @@ body.kbd .pill:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 </div>
 
 <nav class="harmonies" id="harmonies" aria-label="Harmony"></nav>
+<p class="harm-rule" id="harmRule" aria-live="polite"></p>
 
 <section class="stage" id="stage" aria-label="Generated palette"></section>
 
@@ -358,50 +360,127 @@ function describe(hex){
   return{pantone:null,name:n[0]};
 }
 
-/* ---------- palette engine (from the live site: colorHuntPalette + harmonies) ---------- */
-// ColorHunt-style 4-step: hero → rich mid → deep mid → dark anchor in the partner hue.
-function colorHuntPalette(h,s,l,anchorH){
-  const midShift=(anchorH-h+540)%360-180;
-  return[
-    hslToHex(h,s,l),
-    hslToHex(h+midShift*.1,Math.min(s*.92,88),Math.max(l*.58,25)),
-    hslToHex(h+midShift*.28,Math.min(s*.72,75),Math.max(l*.34,16)),
-    hslToHex(anchorH,Math.min(s*.6,55),Math.max(l*.1,7)),
-  ];
+/* ---------- palette engine v2: perceptual OKLCH colour wheel ---------- */
+// OKLCH: L = perceived lightness (0..1), C = chroma (colourfulness), H = hue angle.
+// Equal L looks equally light to the eye, unlike HSL where yellow glows and blue sinks.
+function srgbToLin(v){v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)}
+function linToSrgb(v){v=v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055;return v*255}
+function hexToOklch(hex){
+  const{r,g,b}=hexToRgb(hex),R=srgbToLin(r),G=srgbToLin(g),B=srgbToLin(b);
+  const l=Math.cbrt(.4122214708*R+.5363325363*G+.0514459929*B);
+  const m=Math.cbrt(.2119034982*R+.6806995451*G+.1073969566*B);
+  const s=Math.cbrt(.0883024619*R+.2817188376*G+.6299787005*B);
+  const L=.2104542553*l+.7936177850*m-.0040720468*s;
+  const a=1.9779984951*l-2.4285922050*m+.4505937099*s;
+  const bb=.0259040371*l+.7827717662*m-.8086757660*s;
+  return{L,C:Math.hypot(a,bb),H:((Math.atan2(bb,a)*180/Math.PI)+360)%360};
 }
-const tint=(h,s,l)=>hslToHex(h,s*.35,Math.min(l+(100-l)*.55,90));
-const wrap=(x)=>((x%360)+360)%360;
+function oklchToRgbRaw(L,C,H){
+  const a=C*Math.cos(H*Math.PI/180),b=C*Math.sin(H*Math.PI/180);
+  const l=(L+.3963377774*a+.2158037573*b)**3,m=(L-.1055613458*a-.0638541728*b)**3,s=(L-.0894841775*a-1.2914855480*b)**3;
+  return[4.0767416621*l-3.3077115913*m+.2309699292*s,-1.2684380046*l+2.6097574011*m-.3413193965*s,-.0041960863*l-.7034186147*m+1.7076147010*s];
+}
+const inGamut=c=>c.every(v=>v>=-1e-4&&v<=1+1e-4);
+// keep hue and lightness, reduce chroma until the colour exists on screen
+function oklch(L,C,H){
+  L=Math.max(0,Math.min(1,L));H=((H%360)+360)%360;
+  let lo=0,hi=Math.max(0,C),rgb=oklchToRgbRaw(L,hi,H);
+  if(!inGamut(rgb)){for(let i=0;i<22;i++){const mid=(lo+hi)/2;inGamut(oklchToRgbRaw(L,mid,H))?lo=mid:hi=mid}rgb=oklchToRgbRaw(L,lo,H)}
+  return rgbToHex(...rgb.map(v=>linToSrgb(Math.max(0,Math.min(1,v)))));
+}
+function okDist(a,b){const A=hexToOklch(a),B=hexToOklch(b);
+  const da=A.C*Math.cos(A.H*Math.PI/180)-B.C*Math.cos(B.H*Math.PI/180),db=A.C*Math.sin(A.H*Math.PI/180)-B.C*Math.sin(B.H*Math.PI/180);
+  return Math.hypot(A.L-B.L,da,db);}
 
-// Every harmony yields 8 colors, base color always in slot 1.
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const tuneL=(L,m)=>m.L==null?L:clamp(L*.45+m.L*.55,.4,.78);
+
+// Four harmonies. Each returns 8 colours; the base colour always sits in slot 1.
+// mood = how colourful the source is (from a photo, or the base itself) — partners never shout louder than it.
 const HARMONIES={
-  complementary:{name:'Complementary',build(h,s,l){
-    const c=wrap(h+180),A=colorHuntPalette(h,s,l,c),B=colorHuntPalette(c,s*.9,l,h);
-    return[tint(h,s,l),A[0],A[1],A[2],B[0],B[1],B[2],B[3]];}},
-  analogous:{name:'Analogous',build(h,s,l){
-    const a=wrap(h-30),b=wrap(h+30),B=colorHuntPalette(b,s,l,wrap(b+180));
-    return[tint(a,s,l),hslToHex(h,s,l),hslToHex(a,s*.9,l*.9),B[0],B[1],colorHuntPalette(h,s,l,b)[2],B[2],B[3]];}},
-  triadic:{name:'Triadic',build(h,s,l){
-    const t2=wrap(h+120),t3=wrap(h+240);
-    const A=colorHuntPalette(h,s,l,t2),B=colorHuntPalette(t2,s*.85,l,t3),C=colorHuntPalette(t3,s*.75,l,h);
-    return[tint(h,s,l),A[0],A[1],B[0],B[1],C[0],C[2],A[3]];}},
-  split:{name:'Split',build(h,s,l){
-    const a=wrap(h+150),b=wrap(h+210);
-    const A=colorHuntPalette(h,s,l,a),B=colorHuntPalette(a,s*.85,l,h),C=colorHuntPalette(b,s*.8,l,h);
-    return[tint(h,s,l),A[0],A[1],B[0],B[1],C[0],C[2],B[3]];}},
-  tetradic:{name:'Tetradic',build(h,s,l){
-    const q2=wrap(h+90),q3=wrap(h+180),q4=wrap(h+270);
-    const A=colorHuntPalette(h,s,l,q3),B=colorHuntPalette(q2,s*.85,l,q4),C=colorHuntPalette(q3,s*.8,l,h);
-    return[tint(h,s,l),A[0],A[1],B[0],B[1],C[0],C[2],hslToHex(q4,Math.min(s*.6,55),Math.max(l*.12,7))];}},
-  mono:{name:'Mono',build(h,s,l){
-    return[hslToHex(h,s*.2,94),hslToHex(h,s,l),hslToHex(h,s*.85,Math.max(l*.72,22)),hslToHex(h,s*.4,Math.min(l+20,82)),
-      hslToHex(h,Math.min(s*1.1,100),Math.max(l*.45,14)),hslToHex(h,s*.3,Math.max(l*.6,30)),hslToHex(h,s*.6,Math.max(l*.2,9)),hslToHex(h,8,10)];}},
+  complementary:{name:'Complementary',rule:'Base + its opposite on the wheel · 180°',
+    build(b,m){const h2=b.H+180,heroL=tuneL(clamp(b.L,.58,.76),m),pc=m.partnerC;
+      return[
+        oklch(.96,Math.min(.025,b.C*.15),b.H),          // paper
+        null,                                           // base
+        oklch(b.L*.78,b.C*.95,b.H),                     // base, deeper
+        oklch(clamp(b.L*.52,.3,.48),b.C*.75,b.H),       // base, deep
+        oklch(heroL,pc,h2),                             // opposite
+        oklch(.42,pc*.85,h2),                           // opposite, deep
+        oklch(.6,Math.min(.035,b.C*.25),b.H),           // neutral bridge
+        oklch(.2,.025,h2)];}},                          // ink, tinted with the opposite
+  triadic:{name:'Triadic',rule:'Three points spaced evenly · 120°',
+    build(b,m){const h2=b.H+120,h3=b.H+240,heroL=tuneL(clamp(b.L,.6,.76),m),pc=m.partnerC;
+      return[
+        oklch(.96,Math.min(.025,b.C*.15),b.H),
+        null,
+        oklch(clamp(b.L*.55,.32,.5),b.C*.8,b.H),
+        oklch(heroL,pc,h2),
+        oklch(.44,pc*.85,h2),
+        oklch(heroL-.04,pc,h3),
+        oklch(.4,pc*.85,h3),
+        oklch(.2,.025,b.H+180)];}},
+  tetradic:{name:'Tetradic',rule:'Four points in a square · 90°',
+    build(b,m){const heroL=tuneL(clamp(b.L,.6,.76),m),pc=m.partnerC*.92;
+      return[
+        oklch(.96,Math.min(.025,b.C*.15),b.H),
+        null,
+        oklch(heroL,pc,b.H+90),
+        oklch(heroL-.04,pc,b.H+180),
+        oklch(heroL-.02,pc,b.H+270),
+        oklch(clamp(b.L*.55,.32,.5),b.C*.8,b.H),
+        oklch(.4,pc*.8,b.H+180),
+        oklch(.2,.025,b.H+180)];}},
+  mono:{name:'Mono',rule:'One hue · only lightness and chroma change',
+    build(b){
+      const ladder=[.97,.88,.78,.68,.57,.46,.34,.21];
+      // drop the rung closest to the base so the base takes its place
+      let k=0;ladder.forEach((v,i)=>{if(Math.abs(v-b.L)<Math.abs(ladder[k]-b.L))k=i});
+      return ladder.map((L,i)=>{
+        if(i===k)return null;
+        const t=Math.abs(L-.6)/.4;                       // chroma peaks in the mid-tones
+        return oklch(L,b.C*(1-.75*t*t),b.H);
+      });}},
 };
 let harmony='complementary';
-let photo=null;   // {colors:[hex…], base:index} from the last uploaded image
+let photo=null;   // {colors:[hex…], base:index, weights:[…]} from the last uploaded image
+let photoActive=false;   // harmonies borrow the photo's mood while true
+
+// How colourful the source is. From a photo: weighted average chroma, so a mostly-grey photo gives muted partners.
+function moodOf(base){
+  const b=hexToOklch(base);
+  if(photo&&photoActive){
+    let sum=0,w=0;photo.colors.forEach((c,i)=>{sum+=hexToOklch(c).C*photo.weights[i];w+=photo.weights[i]});
+    const avg=w?sum/w:b.C;
+    let sl=0;photo.colors.forEach((c,i)=>{sl+=hexToOklch(c).L*photo.weights[i]});
+    return{partnerC:clamp(avg*.85,.035,b.C*.7),L:w?sl/w:null};
+  }
+  return{partnerC:b.C*.9,L:null};
+}
+
 function buildPalette(base){
-  const{h,s,l}=hexToHSL(base);
-  const cols=HARMONIES[harmony].build(h,s,l);
-  cols[1]=base.toUpperCase();
+  base=base.toUpperCase();
+  const b=hexToOklch(base);
+  let cols=HARMONIES[harmony].build(b,moodOf(base));
+  // mono puts the base wherever its lightness falls; the others keep it in slot 1
+  const bi=cols.indexOf(null);cols[bi]=base;
+  // in photo mode, prefer a colour that really is in the photo when one sits close to the generated one
+  if(photo&&photoActive){
+    const used=new Set([base]);
+    cols=cols.map((c,i)=>{
+      if(i===bi)return c;
+      let best=null,bd=.09;
+      photo.colors.forEach(p=>{if(used.has(p))return;const d=okDist(c,p);if(d<bd){bd=d;best=p}});
+      if(best){used.add(best);return best}
+      return c;
+    });
+    if(harmony!=='mono'){
+      const byL=[...photo.colors].sort((a,b)=>hexToOklch(b).L-hexToOklch(a).L);
+      const light=byL[0],dark=byL[byL.length-1];
+      if(hexToOklch(light).L>.82&&hexToOklch(light).C<.06&&!cols.includes(light))cols[0]=light;
+      if(hexToOklch(dark).L<.36&&!cols.includes(dark))cols[7]=dark;
+    }
+  }
   return cols;
 }
 
@@ -525,7 +604,7 @@ function layout(){
 addEventListener('resize',layout);
 
 function fromBase(hex){
-  if(harmony==='photo')setHarmony('complementary');
+  setHarmony(harmony==='photo'?'complementary':harmony);
   baseHex=hex.toUpperCase();
   const colors=buildPalette(baseHex);
   render(colors,colors.indexOf(baseHex));
@@ -542,7 +621,7 @@ tabs.forEach(t=>t.addEventListener('click',()=>{
 
 /* code */
 const hexInput=document.getElementById('hexInput');
-function tryHex(){const v=hexInput.value.replace(/[^0-9a-f]/gi,'');
+function tryHex(){photoActive=false;const v=hexInput.value.replace(/[^0-9a-f]/gi,'');
   if(v.length===3)fromBase('#'+v.split('').map(c=>c+c).join(''));
   else if(v.length===6)fromBase('#'+v);
   else toast('Enter 3 or 6 HEX digits');}
@@ -552,15 +631,15 @@ hexInput.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardDat
 
 /* upload */
 const drop=document.getElementById('drop'),fileInput=document.getElementById('fileInput');
-function handleFile(f){
-  if(!f||!f.type.startsWith('image/'))return toast('Choose an image file');
-  const url=URL.createObjectURL(f),img=new Image();
+function handleFile(f,sampleUrl){
+  if(!sampleUrl&&(!f||!f.type.startsWith('image/')))return toast('Choose an image file');
+  const url=sampleUrl||URL.createObjectURL(f),img=new Image();
   img.onload=()=>{
     document.getElementById('thumb').style.backgroundImage='url('+url+')';
     const ex=extract(img,8),cols=ex.map(e=>e.hex);
     showWeights(url,ex);
     let bi=0,bs=-1;cols.forEach((c,i)=>{const s=hexToHSL(c);const score=s.s*(1-Math.abs(s.l-55)/55);if(score>bs){bs=score;bi=i}});
-    photo={colors:cols,base:bi};
+    photo={colors:cols,base:bi,weights:ex.map(e=>e.w)};photoActive=true;
     document.getElementById('harm-photo').hidden=false;
     setHarmony('photo');showPhoto();toast('8 colors pulled from your photo');
   };img.src=url;
@@ -585,7 +664,7 @@ function syncPicker(){
   const{r,g,b}=hexToRgb(baseHex),mx=Math.max(r,g,b)/255,mn=Math.min(r,g,b)/255;
   ps={h:Math.round(hexToHSL(baseHex).h),s:mx?(mx-mn)/mx:0,v:mx};hue.value=ps.h;drawSV();
 }
-let raf=0;function pickerUpdate(){cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{drawSV();fromBase(hsvToHex(ps.h,ps.s,ps.v))})}
+let raf=0;function pickerUpdate(){photoActive=false;cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{drawSV();fromBase(hsvToHex(ps.h,ps.s,ps.v))})}
 hue.addEventListener('input',()=>{ps.h=+hue.value;pickerUpdate()});
 function svPoint(e){const r=sv.getBoundingClientRect();ps.s=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));ps.v=Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height));pickerUpdate()}
 sv.addEventListener('pointerdown',e=>{sv.setPointerCapture(e.pointerId);svPoint(e)});
@@ -666,8 +745,10 @@ addEventListener('resize',()=>{clearTimeout(window.__po);window.__po=setTimeout(
 /* ---------- harmony switch ---------- */
 // "Photo" is the palette pulled straight from the uploaded image; it only exists once a photo is loaded.
 const harmNav=document.getElementById('harmonies');
+const RULE_PHOTO='Straight from your photo · no theory applied';
 function setHarmony(key){
   harmony=key;
+  document.getElementById('harmRule').textContent=key==='photo'?RULE_PHOTO:HARMONIES[key].rule+(photo&&photoActive?' · tuned to your photo':'');
   [...harmNav.children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.key===key?'true':'false'));
 }
 function showPhoto(){
@@ -680,7 +761,7 @@ function showPhoto(){
   if(key==='photo')b.hidden=true;
   b.addEventListener('click',()=>{
     setHarmony(key);
-    if(key==='photo')showPhoto();
+    if(key==='photo'){photoActive=true;showPhoto();}
     else fromBase(baseHex);
   });
   harmNav.appendChild(b);
@@ -735,7 +816,7 @@ document.getElementById('copySvg').addEventListener('click',()=>{
       `<text x="${tx}" y="${ty}" font-family="Space Mono, monospace" font-size="10" fill="${ink}">${info.pantone?info.pantone+' ':''}${info.name}</text>`+
       `</g>`;
   }
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g id="Complementary · ${HARMONIES[harmony].name} · ${baseHex}">${shapes}</g></svg>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g id="Complementary · ${harmony==='photo'?'Photo':HARMONIES[harmony].name} · ${baseHex}">${shapes}</g></svg>`;
   copy(svg,'SVG copied. Paste into Figma with Cmd+V');
 });
 
