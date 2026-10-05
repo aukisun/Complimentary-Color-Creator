@@ -60,9 +60,10 @@
 html,body{min-height:100%}
 body{
   margin:0;
+  min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
   background:var(--bg); color:var(--ink);
   font-family:var(--mono); font-size:13px;
-  padding-inline:clamp(16px,4vw,64px); padding-block:28px 48px;
+  padding-inline:clamp(16px,4vw,64px); padding-block:28px 22px;
   transition:background-color .8s ease;
 }
 
@@ -174,11 +175,12 @@ body.kbd .orb:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 }
 
 /* Site footer */
-.site-foot{display:flex;justify-content:flex-end;align-items:baseline;gap:10px;margin-top:96px;
+.site-foot{display:flex;justify-content:flex-end;align-items:baseline;gap:10px;margin-top:auto;padding-top:72px;
   font-size:11px;letter-spacing:.06em;color:var(--muted)}
 .site-foot .sep{opacity:.5}
+.site-foot sup{font-size:.7em;line-height:0}
 .lab-name{color:var(--ink)}
-@media (max-width:640px){.site-foot{justify-content:center;margin-top:64px}}
+@media (max-width:640px){.site-foot{justify-content:center;padding-top:56px}}
 
 /* Harmony row */
 .harmonies{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;margin-top:4px}
@@ -305,7 +307,7 @@ body.kbd .pill:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 
 
 <footer class="site-foot">
-  <span>C³ Engine v2</span>
+  <span>C<sup>3</sup> Engine v2</span>
   <span class="sep" aria-hidden="true">|</span>
   <span class="lab-name">nuforms lab</span>
 </footer>
