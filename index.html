@@ -88,7 +88,8 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:16p
 }
 .mode:hover{color:var(--ink)}
 .mode[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
-button:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+button:focus,label:focus,.drop:focus{outline:none}
+body.kbd button:focus-visible,body.kbd label:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 
 /* Input panels — fixed height so the stage never jumps */
 .panels{height:136px;display:grid;place-items:center;margin-top:14px}
@@ -154,7 +155,7 @@ button:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid v
   transition:box-shadow .3s}
 .orb:hover{box-shadow:0 24px 44px -14px rgba(20,8,0,.55)}
 .orb:focus{outline:none}
-.orb:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+body.kbd .orb:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .orb{display:grid;place-items:center}
 .orb-tag{display:flex;flex-direction:column;align-items:center;gap:.25em;text-align:center;pointer-events:none;
   font-variant-numeric:tabular-nums;line-height:1}
@@ -194,7 +195,7 @@ button:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid v
 .stage.vertical .pill{box-shadow:0 16px 30px -10px rgba(20,8,0,.35)}
 .pill{transform-origin:50% 50%;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .pill:focus{outline:none}
-.pill:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+body.kbd .pill:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
 .stage.vertical .pill{transform-origin:50% 50%}
 @keyframes rise{from{translate:0 40px;opacity:0}to{translate:0 0;opacity:1}}
 
@@ -396,6 +397,7 @@ const HARMONIES={
       hslToHex(h,Math.min(s*1.1,100),Math.max(l*.45,14)),hslToHex(h,s*.3,Math.max(l*.6,30)),hslToHex(h,s*.6,Math.max(l*.2,9)),hslToHex(h,8,10)];}},
 };
 let harmony='complementary';
+let photo=null;   // {colors:[hex…], base:index} from the last uploaded image
 function buildPalette(base){
   const{h,s,l}=hexToHSL(base);
   const cols=HARMONIES[harmony].build(h,s,l);
@@ -523,6 +525,7 @@ function layout(){
 addEventListener('resize',layout);
 
 function fromBase(hex){
+  if(harmony==='photo')setHarmony('complementary');
   baseHex=hex.toUpperCase();
   const colors=buildPalette(baseHex);
   render(colors,colors.indexOf(baseHex));
@@ -557,7 +560,9 @@ function handleFile(f){
     const ex=extract(img,8),cols=ex.map(e=>e.hex);
     showWeights(url,ex);
     let bi=0,bs=-1;cols.forEach((c,i)=>{const s=hexToHSL(c);const score=s.s*(1-Math.abs(s.l-55)/55);if(score>bs){bs=score;bi=i}});
-    baseHex=cols[bi];hexInput.value=baseHex.slice(1);render(cols,bi);toast('8 colors pulled from your photo');
+    photo={colors:cols,base:bi};
+    document.getElementById('harm-photo').hidden=false;
+    setHarmony('photo');showPhoto();toast('8 colors pulled from your photo');
   };img.src=url;
 }
 fileInput.addEventListener('change',()=>handleFile(fileInput.files[0]));
@@ -659,13 +664,25 @@ function placeOrbs(){
 addEventListener('resize',()=>{clearTimeout(window.__po);window.__po=setTimeout(placeOrbs,150)});
 
 /* ---------- harmony switch ---------- */
+// "Photo" is the palette pulled straight from the uploaded image; it only exists once a photo is loaded.
 const harmNav=document.getElementById('harmonies');
-Object.entries(HARMONIES).forEach(([key,v])=>{
-  const b=document.createElement('button');b.type='button';b.className='harm';b.id='harm-'+key;
+function setHarmony(key){
+  harmony=key;
+  [...harmNav.children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.key===key?'true':'false'));
+}
+function showPhoto(){
+  baseHex=photo.colors[photo.base];hexInput.value=baseHex.slice(1);
+  render(photo.colors,photo.base);
+}
+[['photo',{name:'Photo'}],...Object.entries(HARMONIES)].forEach(([key,v])=>{
+  const b=document.createElement('button');b.type='button';b.className='harm';b.id='harm-'+key;b.dataset.key=key;
   b.textContent=v.name;b.setAttribute('aria-pressed',key===harmony?'true':'false');
-  b.addEventListener('click',()=>{harmony=key;
-    [...harmNav.children].forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
-    fromBase(baseHex);});
+  if(key==='photo')b.hidden=true;
+  b.addEventListener('click',()=>{
+    setHarmony(key);
+    if(key==='photo')showPhoto();
+    else fromBase(baseHex);
+  });
   harmNav.appendChild(b);
 });
 
@@ -721,6 +738,10 @@ document.getElementById('copySvg').addEventListener('click',()=>{
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g id="Complementary · ${HARMONIES[harmony].name} · ${baseHex}">${shapes}</g></svg>`;
   copy(svg,'SVG copied. Paste into Figma with Cmd+V');
 });
+
+// show focus rings only after the keyboard is used
+addEventListener('keydown',e=>{if(e.key==='Tab')document.body.classList.add('kbd')});
+addEventListener('pointerdown',()=>document.body.classList.remove('kbd'));
 
 fromBase('#EBC05A');
 </script>
