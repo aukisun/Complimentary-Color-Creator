@@ -144,7 +144,7 @@ body.kbd button:focus-visible,body.kbd label:focus-visible,input:focus-visible{o
 @keyframes landed{0%{box-shadow:0 0 0 0 var(--accent)}40%{box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 45%,transparent)}100%{box-shadow:0 0 0 0 transparent}}
 
 /* Reference weights */
-.weights{max-width:1180px;margin:72px auto 0;display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:40px;align-items:center}
+.weights{width:100%;max-width:1180px;margin:72px auto 0;display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:40px;align-items:center}
 .weights[hidden]{display:none}
 .ref{display:flex;flex-direction:column;gap:10px;min-width:0}
 .ref-img{width:100%;aspect-ratio:4/5;border-radius:18px;background:var(--line) center/cover;max-width:100%}
@@ -500,27 +500,41 @@ function buildPalette(base){
 }
 
 /* ---------- image extraction (k-means++) ---------- */
+// Pull the real colours of a photo.
+// Every swatch is a pixel colour that actually occurs in the image (no averaging),
+// so flat brand colours come back exactly and photo noise does not invent muddy in-betweens.
 function extract(img,k=8){
-  const c=document.createElement('canvas'),sc=Math.min(1,150/Math.max(img.width,img.height));
+  const c=document.createElement('canvas'),sc=Math.min(1,320/Math.max(img.width,img.height));
   c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));
-  const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);
-  const d=x.getImageData(0,0,c.width,c.height).data,px=[];
-  for(let i=0;i<d.length;i+=4)if(d[i+3]>128)px.push([d[i],d[i+1],d[i+2]]);
-  const dist=(a,b)=>(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;
-  const cs=[px[Math.floor(Math.random()*px.length)].slice()];
-  while(cs.length<k){
-    const ds=px.map(p=>Math.min(...cs.map(cc=>dist(p,cc))));const tot=ds.reduce((a,b)=>a+b,0);
-    let r=Math.random()*tot,i=0;while(r>ds[i]&&i<ds.length-1){r-=ds[i];i++}cs.push(px[i].slice());
+  const x=c.getContext('2d');x.imageSmoothingEnabled=false;   // nearest-neighbour: no blended pixels
+  x.drawImage(img,0,0,c.width,c.height);
+  const d=x.getImageData(0,0,c.width,c.height).data;
+  // 1. group pixels into small colour boxes (32 levels per channel), remember the most common exact colour in each
+  const boxes=new Map();let N=0;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]<128)continue;N++;
+    const key=(d[i]>>3)<<10|(d[i+1]>>3)<<5|(d[i+2]>>3),rgb=d[i]<<16|d[i+1]<<8|d[i+2];
+    let bx=boxes.get(key);if(!bx){bx={n:0,cols:new Map()};boxes.set(key,bx)}
+    bx.n++;bx.cols.set(rgb,(bx.cols.get(rgb)||0)+1);
   }
-  for(let it=0;it<15;it++){
-    const sum=cs.map(()=>[0,0,0,0]);
-    for(const p of px){let bi=0,bd=1e12;cs.forEach((cc,j)=>{const dd=dist(p,cc);if(dd<bd){bd=dd;bi=j}});const s=sum[bi];s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];s[3]++}
-    sum.forEach((s,j)=>{if(s[3])cs[j]=[s[0]/s[3],s[1]/s[3],s[2]/s[3]]});
+  const lab=hex=>{const o=hexToOklch(hex);return[o.L,o.C*Math.cos(o.H*Math.PI/180),o.C*Math.sin(o.H*Math.PI/180)]};
+  const cand=[...boxes.values()].map(bx=>{
+    let best=0,bn=-1;bx.cols.forEach((n,rgb)=>{if(n>bn){bn=n;best=rgb}});
+    const hex=rgbToHex(best>>16&255,best>>8&255,best&255);
+    return{hex,n:bx.n,lab:lab(hex)};
+  }).sort((a,b)=>b.n-a.n);
+  // 2. walk from the most common colour down; a colour joins the palette only if it is clearly different
+  //    from those already picked, otherwise its pixels count towards the closest picked colour
+  const T=.06,minShare=.006,picked=[];
+  const dist=(p,q)=>Math.hypot(p[0]-q[0],p[1]-q[1],p[2]-q[2]);
+  for(const cd of cand){
+    let near=null,nd=1e9;for(const p of picked){const dd=dist(p.lab,cd.lab);if(dd<nd){nd=dd;near=p}}
+    if(near&&nd<T){near.n+=cd.n;continue}
+    if(picked.length<k&&cd.n/N>=minShare)picked.push({...cd});
+    else if(near)near.n+=cd.n;
   }
-  // final assignment to get each cluster's share of the image
-  const cnt=cs.map(()=>0);
-  for(const p of px){let bi=0,bd=1e12;cs.forEach((cc,j)=>{const dd=dist(p,cc);if(dd<bd){bd=dd;bi=j}});cnt[bi]++}
-  return cs.map((cc,j)=>({hex:rgbToHex(...cc),w:cnt[j]/px.length})).sort((a,b)=>hexToHSL(b.hex).l-hexToHSL(a.hex).l);
+  const tot=picked.reduce((a,p)=>a+p.n,0)||1;
+  return picked.map(p=>({hex:p.hex,w:p.n/tot})).sort((a,b)=>hexToOklch(b.hex).L-hexToOklch(a.hex).L);
 }
 
 /* ---------- swatch interactions: click copies, double-click promotes to base ---------- */
@@ -656,7 +670,7 @@ function handleFile(f,sampleUrl){
     let bi=0,bs=-1;cols.forEach((c,i)=>{const s=hexToHSL(c);const score=s.s*(1-Math.abs(s.l-55)/55);if(score>bs){bs=score;bi=i}});
     photo={colors:cols,base:bi,weights:ex.map(e=>e.w)};photoActive=true;
     document.getElementById('harm-photo').hidden=false;
-    setHarmony('photo');showPhoto();toast('8 colors pulled from your photo');
+    setHarmony('photo');showPhoto();toast(cols.length+' colors pulled from your photo');
   };img.src=url;
 }
 fileInput.addEventListener('change',()=>handleFile(fileInput.files[0]));

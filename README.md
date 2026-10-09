@@ -12,7 +12,7 @@ By nuforms lab.
 
 **Three ways in**
 
-- **Upload** — drop a photo; C³ pulls its eight dominant colours.
+- **Upload** — drop a photo; C³ pulls up to eight of its real colours, exactly as they appear in the image.
 - **Code** — type or paste a HEX value.
 - **Picker** — pick a colour by eye.
 
@@ -37,7 +37,7 @@ By nuforms lab.
 
 Harmonies are calculated on the **OKLCH** colour wheel rather than HSL. In OKLCH, equal lightness *looks* equally light, so a partner colour sits at the same visual weight as the base instead of glowing (yellows) or sinking (blues). Colours that fall outside what a screen can show are brought back by lowering their chroma while keeping hue and lightness.
 
-Photo colours are extracted with k-means clustering on a downscaled copy of the image.
+Photo colours are real pixel colours: the image is sampled without blending, similar colours are grouped, and each group is represented by its most common exact colour. Nothing is averaged, so flat brand colours come back exactly and no muddy in-between colours are invented.
 
 ## Project
 
